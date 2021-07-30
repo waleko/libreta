@@ -1,10 +1,17 @@
-import i18n
+from textwrap import dedent
 
 
 class Strings(object):
     """
     Object storing strings for UI (bot replies)
     """
+    please_enter_content = "Please enter content:"
+    server_error_and_cancelled = "Something went wrong! Operation has been cancelled. Please try again later."
+    try_again_check_validity = "Please try again. Check that your input is correct."
+    please_enter_date = dedent("""\
+    Please enter date that the content will be associated with:
+    
+    Please use ISO format (e.g. 2021-29-07).""")
     published = "Your changes have been published!"
     cancelled = "Cancelled"
     timezone_invalid = "This timezone is invalid. Please try again or /cancel."

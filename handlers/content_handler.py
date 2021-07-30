@@ -1,33 +1,150 @@
 import datetime
+import logging
+import re
+from enum import Enum, auto
+from typing import Optional
 
 from telegram import Update
-from telegram.ext import CallbackContext, MessageHandler, Filters
+from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, RegexHandler
 
-from firebase.dao import Dao
-from handlers.handlers import register_unprotected_handler
+from handlers import cancel
+from handlers.handlers import register_protected_handler
 from strings import Strings
+from utils.content_utils import get_content_message_handler_for_callback
+from utils.dao import Dao
 
 
-def content_handler(update: Update, _: CallbackContext):
+class ContentEnums(Enum):
+    AWAITING_DATE = auto()
+    AWAITING_CONTENT = auto()
+
+
+def save_message_content_by_date(update: Update, _: CallbackContext, user_date: datetime.date) -> None:
     """
-    New diary content upload handler. Uploads incoming messages to db as a note.
+    Saves content from update into db
+
+    :param user_date: Date that will be associated with content
     """
     # get message as dict (to be saved)
     obj = update.effective_message.to_dict()
-    # get user timezone
-    user_timezone = Dao.get_user_timezone(update.effective_user)
-    # calculate time at user's
-    user_time = datetime.datetime.now(tz=user_timezone)
-    # get user today's date
-    user_today = user_time.date()
     # upload to db
-    Dao.publish(update.effective_user, user_today, update.effective_message.message_id, obj)
+    Dao.publish(update.effective_user, user_date, update.effective_message.message_id, obj)
     # reply to user
     update.effective_message.reply_text(Strings.published)
 
 
-register_unprotected_handler(MessageHandler(
-    (Filters.update.message | Filters.update.edited_message) &
-    (Filters.text | Filters.photo | Filters.document),
-    content_handler
-))
+def announce_yesterday(update: Update, _: CallbackContext):
+    """
+    Prompts user to enter content
+    """
+    update.effective_message.reply_text(Strings.please_enter_content)
+    return ContentEnums.AWAITING_CONTENT
+
+
+def yesterday_handler(update: Update, context: CallbackContext) -> None:
+    """
+    Diary content upload handler. Uploads incoming messages to db as a note for yesterday.
+    """
+    # get user timezone
+    user_timezone = Dao.get_user_timezone(update.effective_user)
+    # calculate time at user's
+    user_time = datetime.datetime.now(tz=user_timezone)
+    # get user's date
+    user_date = user_time.today()
+    # get yesterday
+    user_yesterday = user_date - datetime.timedelta(days=1)
+    # save message content
+    save_message_content_by_date(update, context, user_yesterday)
+
+
+# register `/yesterday` handler
+yesterday_conv_handler = ConversationHandler(
+    entry_points=[CommandHandler('yesterday', announce_yesterday)],
+    states={
+        ContentEnums.AWAITING_CONTENT: [get_content_message_handler_for_callback(yesterday_handler)]
+    },
+    fallbacks=[CommandHandler('cancel', cancel)]
+)
+
+register_protected_handler(yesterday_conv_handler)
+
+
+def time_selection(update: Update, _: CallbackContext):
+    """
+    Ask user for their desired date to be associated with content
+    """
+    update.effective_message.reply_text(Strings.please_enter_date)
+    return ContentEnums.AWAITING_DATE
+
+
+def date_entering(update: Update, context: CallbackContext):
+    """
+    Process the date for being uploaded to.
+    """
+    # get user input
+    date_str = update.effective_message.text
+    # validate ISO format
+    try:
+        # try to create a `date` from it
+        _ = datetime.date.fromisoformat(date_str)
+    except ValueError as e:
+        # if failed to create `date`, reply with failed
+        update.effective_message.reply_text(Strings.try_again_check_validity)
+        # log client error
+        logging.debug(e.__str__())
+        # prompt to try again
+        return ContentEnums.AWAITING_DATE
+    # save user input for the next step
+    context.user_data["custom_date"] = date_str
+    # prompt to enter diary content
+    update.effective_message.reply_text(Strings.please_enter_content)
+    return ContentEnums.AWAITING_CONTENT
+
+
+def custom_date_content_handler(update: Update, context: CallbackContext):
+    """
+    Upload diary content for given date
+    """
+    # check the presense of `custom_date`
+    ud: Optional[dict] = context.user_data
+    if ud is None or "custom_date" not in ud:
+        # if not, something went very wrong
+        update.effective_message.reply_text(Strings.server_error_and_cancelled)
+        # log error
+        logging.error("No custom_date in user data!")
+        return ConversationHandler.END
+    # get custom date
+    user_date = datetime.date.fromisoformat(ud["custom_date"])
+    # save message content
+    save_message_content_by_date(update, context, user_date)
+    return ConversationHandler.END
+
+
+custom_date_conv_handler = ConversationHandler(
+    entry_points=[CommandHandler('customdate', time_selection)],
+    states={
+        ContentEnums.AWAITING_DATE: [RegexHandler(re.compile(r"^\d{4}-\d{2}-\d{2}$"), date_entering)],
+        ContentEnums.AWAITING_CONTENT: [get_content_message_handler_for_callback(custom_date_content_handler)]
+    },
+    fallbacks=[CommandHandler('cancel', cancel)]
+)
+
+register_protected_handler(custom_date_conv_handler)
+
+
+def content_handler(update: Update, context: CallbackContext):
+    """
+    New diary content upload handler. Uploads incoming messages to db as a note.
+    """
+    # get user timezone
+    user_timezone = Dao.get_user_timezone(update.effective_user)
+    # calculate time at user's
+    user_time = datetime.datetime.now(tz=user_timezone)
+    # get user's date
+    user_date = user_time.today()
+    # save message content
+    save_message_content_by_date(update, context, user_date)
+
+
+# INFO: this content handler has to come very last, as this content handler accepts (almost) any message
+register_protected_handler(get_content_message_handler_for_callback(content_handler))

@@ -3,8 +3,8 @@ from typing import List
 from telegram import Update
 from telegram.ext import Handler, CallbackContext, ConversationHandler
 
-from firebase.dao import Dao
 from strings import Strings
+from utils.dao import Dao
 
 handlers: List[Handler] = []
 

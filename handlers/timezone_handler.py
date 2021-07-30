@@ -10,9 +10,10 @@ import pytz
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, RegexHandler
 
-from firebase.dao import Dao
 from handlers.handlers import register_protected_handler
+from handlers.misc import cancel
 from strings import Strings
+from utils.dao import Dao
 
 # parse timezones
 
@@ -93,15 +94,6 @@ def timezone_confirm(update: Update, context: CallbackContext):
     Dao.set_user_timezone(update.effective_user, pytz.timezone(resulting_timezone))
     # reply to user
     update.effective_message.reply_text(Strings.timezone_set(resulting_timezone))
-    return ConversationHandler.END
-
-
-def cancel(update: Update, _: CallbackContext):
-    """
-    Cancels whole timezone select
-    """
-    # reply and hide any current keyboard
-    update.effective_message.reply_text(Strings.cancelled, reply_markup={"remove_keyboard": True})
     return ConversationHandler.END
 
 

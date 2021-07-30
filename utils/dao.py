@@ -1,10 +1,18 @@
 import datetime
+import os
 from datetime import date
-from typing import Optional, Any, Union
+from typing import Optional, Union
 
 import pytz
 from firebase_admin import db
 from telegram import User
+
+# get db root, depending on whether app is running in production
+db_root: str
+if os.environ.get("DEBUG") is None:
+    db_root = "libreta"  # production db
+else:
+    db_root = "libreta-test"  # test db
 
 
 class Dao(object):
@@ -14,7 +22,7 @@ class Dao(object):
     Implements API for saving content, checking user authorization status, etc.
     """
 
-    root = "libreta"
+    root = db_root
 
     @classmethod
     def is_user_authorized(cls, user: Optional[User]) -> bool:
@@ -52,7 +60,7 @@ class Dao(object):
         :param unique_message_id: Message id of content. If such content record exists, it will be overridden.
         :param content: User content as dict.
         """
-        date_str = today.__str__()
+        date_str = today.strftime("%Y-%m-%d")
         db.reference(f"{cls.root}/users/{user.id}/by_date/{date_str}/{unique_message_id}").update(content)
 
     @classmethod
