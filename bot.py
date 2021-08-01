@@ -10,6 +10,4 @@ class Bot:
         self.updater = Updater(token)
         for handler in handlers.handlers:
             self.updater.dispatcher.add_handler(handler)
-            logging.info(f"Successfully registered {handler.__str__()}.")
         logging.info(f"Registered a total of {len(handlers.handlers)} handlers.")
-

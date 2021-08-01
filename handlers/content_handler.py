@@ -50,11 +50,9 @@ def yesterday_handler(update: Update, context: CallbackContext):
     # get user timezone
     user_timezone = Dao.get_user_timezone(update.effective_user)
     # calculate time at user's
-    user_time = datetime.datetime.now(tz=user_timezone)
-    # get user's date
-    user_date = user_time.today()
+    user_datetime = update.effective_message.date.astimezone(user_timezone)
     # get yesterday
-    user_yesterday = user_date - datetime.timedelta(days=1)
+    user_yesterday = user_datetime - datetime.timedelta(days=1)
     # save message content
     save_message_content_by_date(update, context, user_yesterday)
     return ConversationHandler.END
@@ -154,24 +152,22 @@ def content_handler_with_confirmation(update: Update, context: CallbackContext):
 
     # get user timezone
     user_timezone = Dao.get_user_timezone(update.effective_user)
-    # calculate time at user's
-    user_time = datetime.datetime.now(tz=user_timezone)
-    # get user's date
-    user_date = user_time.today()
-
+    # get content message from context
     message = Message.de_json(obj, context.bot)
-
-    Dao.publish(update.effective_user, user_date, message.message_id, message.to_dict())
-
-    update.effective_message.reply_text(Strings.published(message.date))
+    # calculate time at user's
+    user_datetime = message.date.astimezone(user_timezone)
+    # publish
+    Dao.publish(update.effective_user, user_datetime, message.message_id, message.to_dict())
+    # answer user
+    update.effective_message.reply_text(Strings.published(user_datetime), reply_to_message_id=message.message_id)
     return ConversationHandler.END
 
 
 # INFO: this content handler has to come very last, as this content handler accepts (almost) any message
 register_protected_handler(ConversationHandler(
     entry_points=[get_content_message_handler_for_callback(content_confirmation)],
-    states = {
-        ContentEnums.AWAITING_CONFIRMATION : [MessageHandler(Filters.text, content_handler_with_confirmation)]
+    states={
+        ContentEnums.AWAITING_CONFIRMATION: [MessageHandler(Filters.text, content_handler_with_confirmation)]
     },
     fallbacks=[CommandHandler('cancel', cancel)]
 ))
