@@ -19,7 +19,9 @@ def main():
         level = logging.DEBUG
     else:
         level = logging.INFO
-    logging.basicConfig(level=level, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logging.basicConfig(
+        level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
 
     credentials = json.loads(base64.b64decode(os.environ.get("FIREBASE_SVC_ACCOUNT")))
     databaseURL = os.environ.get("databaseURL")

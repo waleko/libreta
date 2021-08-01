@@ -26,7 +26,10 @@ def add_authguard_to_handler(handler: Handler) -> Handler:
     # if handler is a ConversationHandler, there is no `.callback`
     if isinstance(handler, ConversationHandler):
         # recursively add authguard to every entry point
-        new_entry_points = [add_authguard_to_handler(entry_point) for entry_point in handler.entry_points]
+        new_entry_points = [
+            add_authguard_to_handler(entry_point)
+            for entry_point in handler.entry_points
+        ]
         # construct new handler
         new_handler = ConversationHandler(
             new_entry_points,
@@ -40,7 +43,7 @@ def add_authguard_to_handler(handler: Handler) -> Handler:
             handler.name,
             handler.persistent,
             handler.map_to_parent,
-            handler.run_async
+            handler.run_async,
         )
         return new_handler
     else:

@@ -18,6 +18,4 @@ class FirebaseUtils(object):
         :param databaseURL: Realtime database url
         """
         cert = credentials.Certificate(certificate)
-        firebase_admin.initialize_app(cert, {
-            "databaseURL": databaseURL
-        })
+        firebase_admin.initialize_app(cert, {"databaseURL": databaseURL})

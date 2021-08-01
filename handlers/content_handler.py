@@ -5,7 +5,14 @@ from enum import Enum, auto
 from typing import Optional
 
 from telegram import Update, ReplyKeyboardMarkup, Message
-from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, RegexHandler, MessageHandler, Filters
+from telegram.ext import (
+    CallbackContext,
+    ConversationHandler,
+    CommandHandler,
+    RegexHandler,
+    MessageHandler,
+    Filters,
+)
 
 from handlers import cancel
 from handlers.handlers import register_protected_handler
@@ -20,7 +27,9 @@ class ContentEnums(Enum):
     AWAITING_CONFIRMATION = auto()
 
 
-def save_message_content_by_date(update: Update, _: CallbackContext, user_date: datetime.date) -> None:
+def save_message_content_by_date(
+    update: Update, _: CallbackContext, user_date: datetime.date
+) -> None:
     """
     Saves content from update into db
 
@@ -32,7 +41,9 @@ def save_message_content_by_date(update: Update, _: CallbackContext, user_date: 
     message_id = update.effective_message.message_id
     Dao.publish(update.effective_user, user_date, message_id, obj)
     # reply to user
-    update.effective_message.reply_text(Strings.published(user_date), reply_to_message_id=message_id)
+    update.effective_message.reply_text(
+        Strings.published(user_date), reply_to_message_id=message_id
+    )
 
 
 def prompt_content_input(update: Update, _: CallbackContext):
@@ -60,11 +71,13 @@ def yesterday_handler(update: Update, context: CallbackContext):
 
 # register `/yesterday` handler
 yesterday_conv_handler = ConversationHandler(
-    entry_points=[CommandHandler('yesterday', prompt_content_input)],
+    entry_points=[CommandHandler("yesterday", prompt_content_input)],
     states={
-        ContentEnums.AWAITING_CONTENT: [get_content_message_handler_for_callback(yesterday_handler)]
+        ContentEnums.AWAITING_CONTENT: [
+            get_content_message_handler_for_callback(yesterday_handler)
+        ]
     },
-    fallbacks=[CommandHandler('cancel', cancel)]
+    fallbacks=[CommandHandler("cancel", cancel)],
 )
 
 register_protected_handler(yesterday_conv_handler)
@@ -122,24 +135,32 @@ def custom_date_content_handler(update: Update, context: CallbackContext):
 
 
 custom_date_conv_handler = ConversationHandler(
-    entry_points=[CommandHandler('customdate', time_selection)],
+    entry_points=[CommandHandler("customdate", time_selection)],
     states={
-        ContentEnums.AWAITING_DATE: [RegexHandler(re.compile(r"^\d{4}-\d{2}-\d{2}$"), date_entering)],
-        ContentEnums.AWAITING_CONTENT: [get_content_message_handler_for_callback(custom_date_content_handler)]
+        ContentEnums.AWAITING_DATE: [
+            RegexHandler(re.compile(r"^\d{4}-\d{2}-\d{2}$"), date_entering)
+        ],
+        ContentEnums.AWAITING_CONTENT: [
+            get_content_message_handler_for_callback(custom_date_content_handler)
+        ],
     },
-    fallbacks=[CommandHandler('cancel', cancel)]
+    fallbacks=[CommandHandler("cancel", cancel)],
 )
 
 register_protected_handler(custom_date_conv_handler)
 
 
 def content_confirmation(update: Update, context: CallbackContext):
-    context.user_data["content_awaiting_confirmation"] = update.effective_message.to_dict()
+    context.user_data[
+        "content_awaiting_confirmation"
+    ] = update.effective_message.to_dict()
 
     message_id = update.effective_message.message_id
     keyboard = [[Strings.Yes, Strings.No]]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
-    update.effective_message.reply_text(Strings.confirm_save, reply_markup=reply_markup, reply_to_message_id=message_id)
+    update.effective_message.reply_text(
+        Strings.confirm_save, reply_markup=reply_markup, reply_to_message_id=message_id
+    )
     return ContentEnums.AWAITING_CONFIRMATION
 
 
@@ -157,17 +178,25 @@ def content_handler_with_confirmation(update: Update, context: CallbackContext):
     # calculate time at user's
     user_datetime = message.date.astimezone(user_timezone)
     # publish
-    Dao.publish(update.effective_user, user_datetime, message.message_id, message.to_dict())
+    Dao.publish(
+        update.effective_user, user_datetime, message.message_id, message.to_dict()
+    )
     # answer user
-    update.effective_message.reply_text(Strings.published(user_datetime), reply_to_message_id=message.message_id)
+    update.effective_message.reply_text(
+        Strings.published(user_datetime), reply_to_message_id=message.message_id
+    )
     return ConversationHandler.END
 
 
 # INFO: this content handler has to come very last, as this content handler accepts (almost) any message
-register_protected_handler(ConversationHandler(
-    entry_points=[get_content_message_handler_for_callback(content_confirmation)],
-    states={
-        ContentEnums.AWAITING_CONFIRMATION: [MessageHandler(Filters.text, content_handler_with_confirmation)]
-    },
-    fallbacks=[CommandHandler('cancel', cancel)]
-))
+register_protected_handler(
+    ConversationHandler(
+        entry_points=[get_content_message_handler_for_callback(content_confirmation)],
+        states={
+            ContentEnums.AWAITING_CONFIRMATION: [
+                MessageHandler(Filters.text, content_handler_with_confirmation)
+            ]
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+)

@@ -9,5 +9,7 @@ def cancel(update: Update, _: CallbackContext):
     Simple cancel handler
     """
     # reply and hide any current keyboard
-    update.effective_message.reply_text(Strings.cancelled, reply_markup={"remove_keyboard": True})
+    update.effective_message.reply_text(
+        Strings.cancelled, reply_markup={"remove_keyboard": True}
+    )
     return ConversationHandler.END

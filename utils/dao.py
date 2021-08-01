@@ -48,7 +48,10 @@ class Dao(object):
         :return:
         """
         date_str = date.__str__()
-        return db.reference(f"{cls.root}/users/{user.id}/by_date/{date_str}").get() is not None
+        return (
+            db.reference(f"{cls.root}/users/{user.id}/by_date/{date_str}").get()
+            is not None
+        )
 
     @classmethod
     def publish(cls, user: User, today: date, unique_message_id: int, content: dict):
@@ -61,14 +64,18 @@ class Dao(object):
         :param content: User content as dict.
         """
         date_str = today.strftime("%Y-%m-%d")
-        db.reference(f"{cls.root}/users/{user.id}/by_date/{date_str}/{unique_message_id}").update(content)
+        db.reference(
+            f"{cls.root}/users/{user.id}/by_date/{date_str}/{unique_message_id}"
+        ).update(content)
 
     @classmethod
     def set_user_timezone(cls, user: User, timezone: Union[datetime.tzinfo]) -> None:
         """
         Saves timezone for given user
         """
-        db.reference(f"{cls.root}/users/{user.id}").update({"timezone": timezone.__str__()})
+        db.reference(f"{cls.root}/users/{user.id}").update(
+            {"timezone": timezone.__str__()}
+        )
 
     @classmethod
     def get_user_timezone(cls, user: User) -> datetime.tzinfo:

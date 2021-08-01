@@ -8,7 +8,12 @@ from typing import List, Dict
 
 import pytz
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, RegexHandler
+from telegram.ext import (
+    CallbackContext,
+    ConversationHandler,
+    CommandHandler,
+    RegexHandler,
+)
 
 from handlers.handlers import register_protected_handler
 from handlers.misc import cancel
@@ -23,12 +28,12 @@ timezones = pytz.common_timezones
 structured_timezones: Dict[str, List[str]] = {}
 for tz in timezones:
     # skip UTC, GMT etc, as they are not geographical places
-    if '/' not in tz:
+    if "/" not in tz:
         continue
     #  parse into continent and city
     #  `maxsplit` is needed as timezones with three parts exist,
     #  e.g. `America/Kentucky/Louisville`
-    cont, city = tz.split('/', maxsplit=1)
+    cont, city = tz.split("/", maxsplit=1)
     # save to dict
     structured_timezones.setdefault(cont, [])
     structured_timezones[cont].append(city)
@@ -38,6 +43,7 @@ class TimezoneStates(Enum):
     """
     States for timezone handler
     """
+
     WAIT_CONTINENT = auto()
     WAIT_CITY = auto()
 
@@ -47,10 +53,14 @@ def continent_select(update: Update, _: CallbackContext):
     Prompts user to select their continent (or similar, e.g. US or India) using a keyboard.
     """
     # init keyboard
-    keyboard = [[KeyboardButton(continent)] for continent in sorted(structured_timezones.keys())]
+    keyboard = [
+        [KeyboardButton(continent)] for continent in sorted(structured_timezones.keys())
+    ]
     # reply to user
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
-    update.message.reply_text(Strings.timezone_select_and_start, reply_markup=reply_markup)
+    update.message.reply_text(
+        Strings.timezone_select_and_start, reply_markup=reply_markup
+    )
     return TimezoneStates.WAIT_CONTINENT
 
 
@@ -66,10 +76,13 @@ def city_select(update: Update, context: CallbackContext):
         update.effective_message.reply_text(Strings.entered_continent_invalid)
         return continent_select(update, context)
     # save continent in context
-    context.user_data['tz_cont'] = selected_continent
+    context.user_data["tz_cont"] = selected_continent
 
     # init keyboard
-    keyboard = [[KeyboardButton(city)] for city in sorted(structured_timezones[selected_continent])]
+    keyboard = [
+        [KeyboardButton(city)]
+        for city in sorted(structured_timezones[selected_continent])
+    ]
     # reply to user
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
     update.message.reply_text(Strings.please_enter_city, reply_markup=reply_markup)
@@ -98,12 +111,15 @@ def timezone_confirm(update: Update, context: CallbackContext):
 
 
 set_timezone_handler = ConversationHandler(
-    entry_points=[CommandHandler('timezone', continent_select), CommandHandler('start', continent_select)],
+    entry_points=[
+        CommandHandler("timezone", continent_select),
+        CommandHandler("start", continent_select),
+    ],
     states={
         TimezoneStates.WAIT_CONTINENT: [RegexHandler(r"^\w+$", city_select)],
-        TimezoneStates.WAIT_CITY: [RegexHandler(r"^\w+$", timezone_confirm)]
+        TimezoneStates.WAIT_CITY: [RegexHandler(r"^\w+$", timezone_confirm)],
     },
-    fallbacks=[CommandHandler('cancel', cancel)]
+    fallbacks=[CommandHandler("cancel", cancel)],
 )
 
 register_protected_handler(set_timezone_handler)
