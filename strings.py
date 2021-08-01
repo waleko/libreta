@@ -8,6 +8,7 @@ class Strings(object):
     Object storing strings for UI (bot replies)
     """
 
+    updated = "Your changes have been saved"
     Yes = "Yes"
     No = "No"
     confirm_save = "Do you actually want to save this?"
@@ -22,7 +23,7 @@ class Strings(object):
     
     Please use ISO format (e.g. 2021-07-29)."""
     )
-    __published = "Your changes have been published for"
+    __published = "Saved for"
     cancelled = "Cancelled"
     timezone_invalid = "This timezone is invalid. Please try again or /cancel."
     please_enter_city = "Please select your city timezone, or /cancel to cancel:"

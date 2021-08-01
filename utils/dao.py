@@ -1,11 +1,12 @@
 import datetime
+import logging
 import os
 from datetime import date
 from typing import Optional, Union
 
 import pytz
 from firebase_admin import db
-from telegram import User
+from telegram import User, Message
 
 # get db root, depending on whether app is running in production
 db_root: str
@@ -54,7 +55,9 @@ class Dao(object):
         )
 
     @classmethod
-    def publish(cls, user: User, today: date, unique_message_id: int, content: dict):
+    def publish(cls, user: User, today: date, message: Message):
+        content = message.to_dict()
+        message_id = message.message_id
         """
         Uploads content to the database.
 
@@ -65,8 +68,23 @@ class Dao(object):
         """
         date_str = today.strftime("%Y-%m-%d")
         db.reference(
-            f"{cls.root}/users/{user.id}/by_date/{date_str}/{unique_message_id}"
+            f"{cls.root}/users/{user.id}/by_date/{date_str}/{message_id}"
         ).update(content)
+        db.reference(
+            f"{cls.root}/users/{user.id}/message_date"
+        ).update({message_id: date_str})
+
+    @classmethod
+    def update_message(cls, user: User, edited_message: Message):
+        message_id = edited_message.message_id
+        date_str = db.reference(
+            f"{cls.root}/users/{user.id}/message_date/{message_id}"
+        ).get()
+        if not isinstance(date_str, str):
+            logging.debug(f"No upload date for message id {message_id} and user {user.id}.")
+            return
+        today = datetime.date.fromisoformat(date_str)
+        cls.publish(user, today, edited_message)
 
     @classmethod
     def set_user_timezone(cls, user: User, timezone: Union[datetime.tzinfo]) -> None:

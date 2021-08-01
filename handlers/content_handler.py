@@ -17,7 +17,7 @@ from telegram.ext import (
 from handlers import cancel
 from handlers.handlers import register_protected_handler
 from strings import Strings
-from utils.content_utils import get_content_message_handler_for_callback
+from utils.content_utils import get_content_message_handler, get_content_update_handler
 from utils.dao import Dao
 
 
@@ -35,11 +35,9 @@ def save_message_content_by_date(
 
     :param user_date: Date that will be associated with content
     """
-    # get message as dict (to be saved)
-    obj = update.effective_message.to_dict()
     # upload to db
     message_id = update.effective_message.message_id
-    Dao.publish(update.effective_user, user_date, message_id, obj)
+    Dao.publish(update.effective_user, user_date, update.effective_message)
     # reply to user
     update.effective_message.reply_text(
         Strings.published(user_date), reply_to_message_id=message_id
@@ -74,7 +72,7 @@ yesterday_conv_handler = ConversationHandler(
     entry_points=[CommandHandler("yesterday", prompt_content_input)],
     states={
         ContentEnums.AWAITING_CONTENT: [
-            get_content_message_handler_for_callback(yesterday_handler)
+            get_content_message_handler(yesterday_handler)
         ]
     },
     fallbacks=[CommandHandler("cancel", cancel)],
@@ -141,7 +139,7 @@ custom_date_conv_handler = ConversationHandler(
             RegexHandler(re.compile(r"^\d{4}-\d{2}-\d{2}$"), date_entering)
         ],
         ContentEnums.AWAITING_CONTENT: [
-            get_content_message_handler_for_callback(custom_date_content_handler)
+            get_content_message_handler(custom_date_content_handler)
         ],
     },
     fallbacks=[CommandHandler("cancel", cancel)],
@@ -179,7 +177,7 @@ def content_handler_with_confirmation(update: Update, context: CallbackContext):
     user_datetime = message.date.astimezone(user_timezone)
     # publish
     Dao.publish(
-        update.effective_user, user_datetime, message.message_id, message.to_dict()
+        update.effective_user, user_datetime, message
     )
     # answer user
     update.effective_message.reply_text(
@@ -188,10 +186,17 @@ def content_handler_with_confirmation(update: Update, context: CallbackContext):
     return ConversationHandler.END
 
 
+def update_handler(update: Update, _: CallbackContext):
+    Dao.update_message(update.effective_user, update.effective_message)
+    update.effective_message.reply_text(Strings.updated, reply_to_message_id=update.effective_message.message_id)
+
+
+register_protected_handler(get_content_update_handler(update_handler))
+
 # INFO: this content handler has to come very last, as this content handler accepts (almost) any message
 register_protected_handler(
     ConversationHandler(
-        entry_points=[get_content_message_handler_for_callback(content_confirmation)],
+        entry_points=[get_content_message_handler(content_confirmation)],
         states={
             ContentEnums.AWAITING_CONFIRMATION: [
                 MessageHandler(Filters.text, content_handler_with_confirmation)
