@@ -187,8 +187,9 @@ def content_handler_with_confirmation(update: Update, context: CallbackContext):
 
 
 def update_handler(update: Update, _: CallbackContext):
-    Dao.update_message(update.effective_user, update.effective_message)
-    update.effective_message.reply_text(Strings.updated, reply_to_message_id=update.effective_message.message_id)
+    has_been_updated = Dao.update_message(update.effective_user, update.effective_message)
+    if has_been_updated:
+        update.effective_message.reply_text(Strings.updated, reply_to_message_id=update.effective_message.message_id)
 
 
 register_protected_handler(get_content_update_handler(update_handler))

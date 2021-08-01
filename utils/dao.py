@@ -75,16 +75,24 @@ class Dao(object):
         ).update({message_id: date_str})
 
     @classmethod
-    def update_message(cls, user: User, edited_message: Message):
+    def update_message(cls, user: User, edited_message: Message) -> bool:
+        """
+        Updates content in db for message
+
+        :param user: User that has the message
+        :param edited_message: message
+        :return: `True` if updated successfully, `False` if this message is not diary content
+        """
         message_id = edited_message.message_id
         date_str = db.reference(
             f"{cls.root}/users/{user.id}/message_date/{message_id}"
         ).get()
         if not isinstance(date_str, str):
             logging.debug(f"No upload date for message id {message_id} and user {user.id}.")
-            return
+            return False
         today = datetime.date.fromisoformat(date_str)
         cls.publish(user, today, edited_message)
+        return True
 
     @classmethod
     def set_user_timezone(cls, user: User, timezone: Union[datetime.tzinfo]) -> None:
