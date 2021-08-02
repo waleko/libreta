@@ -59,7 +59,7 @@ def continent_select(update: Update, _: CallbackContext):
     # reply to user
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
     update.message.reply_text(
-        Strings.timezone_select_and_start, reply_markup=reply_markup
+        Strings.timezone_select, reply_markup=reply_markup
     )
     return TimezoneStates.WAIT_CONTINENT
 
@@ -112,8 +112,7 @@ def timezone_confirm(update: Update, context: CallbackContext):
 
 set_timezone_handler = ConversationHandler(
     entry_points=[
-        CommandHandler("timezone", continent_select),
-        CommandHandler("start", continent_select),
+        CommandHandler("timezone", continent_select)
     ],
     states={
         TimezoneStates.WAIT_CONTINENT: [RegexHandler(r"^\w+$", city_select)],

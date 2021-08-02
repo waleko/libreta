@@ -8,6 +8,7 @@ class Strings(object):
     Object storing strings for UI (bot replies)
     """
 
+    start = "Welcome to Libreta!"
     updated = "Your changes have been saved"
     Yes = "Yes"
     No = "No"
@@ -30,7 +31,7 @@ class Strings(object):
     entered_continent_invalid = (
         "This continent is invalid. Please try again or /cancel."
     )
-    timezone_select_and_start = "Please select a continent, or /cancel to cancel:"
+    timezone_select = "Please select a continent, or /cancel to cancel:"
     unauthenticated = "Unfortunately, you are not authorized to use this bot"
     __timezone_set = "Your timezone has been set to"
 
